@@ -2,6 +2,8 @@
 # Output: rasterlayers with counts of NA  and nonNA values
 # for the whole stack and various subsets and a dataframe with
 # NA count per date
+# Plots of mean NDVI per yaer + std
+# Time-series of mean NDVI
 
 rm(list = ls())  # clear workspace
 
@@ -24,15 +26,15 @@ library(scales)
 
 # Set working directory ---------------------------------------------------
 
-workdirNDVI <- "G:/Thesis_data/NDVI"
+workdir_NDVI <- "G:/Thesis_data/NDVI"
 workdir_GIS_Ounila = "G:/Thesis_data/Shapefiles"
 workdir_Fig = "G:/Thesis_data/Figures"
 
-setwd(workdirNDVI)
+setwd(workdir_NDVI)
 
 # Open rasterstack --------------------------------------------------------
 
-NDVI <- stack("NDVI_final.grd")
+NDVI <- stack("NDVI_OLS.grd")
 
 # Open reprojected shapefile ----------------------------------------------
 
@@ -42,11 +44,11 @@ Ounila_catchment_reprojected <- readOGR(dsn=workdir_GIS_Ounila,layer="Ounila_cat
 
 # Calculate number of  NA and nonNA data ----------------------------------
 
-setwd(workdirNDVI)
+setwd(workdir_NDVI)
 
 # calculate the number of data points for each cell in the whole rasterstack
 nr_nonNA <- sum(!is.na(NDVI))
-nr_nonNA <- mask(nr_nonNA,Ounila_catchment_reprojected,filename="nr_nonNA.grd")
+nr_nonNA <- mask(nr_nonNA,Ounila_catchment_reprojected,filename="nr_nonNA.grd",overwrite=TRUE)
 
 # calculate the number of NAs for each cell in the whole rasterstack
 nr_NA <- sum(is.na(NDVI))
@@ -142,11 +144,17 @@ mtext("nr of NA counts per pixel",side=3,line=0.5,font=2,cex=1.2)
 
 dev.off()
 
-# figure of nr of nonNA over whole rasterstack
-png(filename="nr_nonNA.png",width=1890,height=1890,res=300)
+nr_nonNA<-mask(nr_nonNA,NDVI)
 
-plot(nr_nonNA)
-mtext("nr of nonNA counts per pixel",side=3,line=0.5,font=2,cex=1.2)
+# figure of nr of nonNA over whole rasterstack
+png(filename="nr_nonNA.png",family="Calibri",width=2031,height=1700,res=300)
+plot(nr_nonNA,asp=1,xaxt='n',yaxt='n',col=viridis_pal(direction=-1,option="viridis")(9),breaks=seq(0,1600,200),colNA="white")
+title("nr of nonNA counts per pixel",line=0.5)
+axis(2,seq(31.0,31.6,0.1),cex.axis=0.8)
+axis(1,seq(-7.4,-7.0,0.1),cex.axis=0.8)
+mtext("Latitude",side=2,line=2.2)
+mtext("Longitude",side=1,line=2.2)
+raster::scalebar(d=10,xy=c(-7.39,31.05),type="bar",lonlat=TRUE,divs=2,cex=0.7,below="kilometres")
 
 dev.off()
 
@@ -507,7 +515,9 @@ saveRDS(df_mean_NDVI,file="df_mean_NDVI_OLS.Rda")
 # df_mean_NDVI <- readRDS("df_mean_NDVI_OLS.Rda")
   
 df_mean_NDVI$Date <- as.Date(df_mean_NDVI$Date)
-  
+
+setwd(workdir_Fig)
+
 # Plot the data from 1999-2019
 ggplot(data=df_mean_NDVI,aes(x=Date,
                              y=Mean,
@@ -525,7 +535,20 @@ ggplot(data=df_mean_NDVI,aes(x=Date,
         axis.title.x=element_text(size=11),axis.title.y=element_text(size=11),
         legend.title=element_text(size=11), legend.text=element_text(size=9)) +
   scale_color_manual(values=c("#ff3399","#35978f","#00CC99","#bf812d"))
-ggsave(filename="mean_NDVI_1984_2019_per_satellite_ETM_OLS.png", width = 8, height = 3, dpi=300)  
+ggsave(filename="mean_NDVI_1984_2019_per_satellite_ETM_OLS.png", family="Calibri",width = 8, height = 3, dpi=300)  
+
+
+# Density plot of scenes over time ----------------------------------------
+dates_names <- substr(names(NDVI_transformed_OLS),5,12)
+dates_df<-as.data.frame(dates_names)
+dates_df$dates_names <- as.Date(dates_df$dates_names ,format="%Y%m%d",origin="1970-01-01")
+
+setwd(workdir_Fig)
+# Density plot
+ggplot(dates_df, aes(x=dates_names)) +  geom_density(aes(y = ..count..)) + 
+  labs(x="Year",y="Number of scenes") +
+  scale_x_date(breaks=date_breaks("2 year"),labels=date_format("%Y"), limits=c(min(dates_df$dates_names),max(dates_df$dates_names))) +
+ggsave(filename="scenes_count.png", family="Calibri", width = 8, height = 3, dpi=300)
 
 # Mean NDVI per Landsat 7 and Landsat 8 -----------------------------------
 
@@ -608,14 +631,5 @@ plot(annual_std_NDVI_LC08[[1:7]],cex.main=0.9,zlim=c(0.00,0.45))
 dev.off()
 
 
-  
-### Discuss the counts with Jennifer or/and Saskia
-### I think: just go ahead, otherwise there is a pretty large gap in the data where there is nothing
-### Just beware that this same pattern doesnt exist in the breakpoints analysis. That would suck.
-### Also, the stripes does not seem to be the largest influence and still contain a relatively large
-### percent of observations. However, in the North of the region there are a lot of missing values
-### This is the higher part of the case study area, could be snow cover? or cloud cover?
-### ER ZIT OOK EEN PAAR KEER LT04 TUSSEN!? WAAR KOMT DIE VANDAAN
-  
   
 

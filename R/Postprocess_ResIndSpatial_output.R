@@ -122,6 +122,15 @@ for(i in 1:length(try_3_files)){
   try_3_list[[i]] <- output
   assign(names_try_3[i],output)
   setwd("G:/Thesis_data/output_resIndSpatial/output_merged")
+  # those cells that already have a value in the 1st try (BPNumb/rasterlayer 1 contains data)
+  # are masked out of the 2nd try. pixels that had a value in either the 1st or 2nd try are masked out of the 3th try
+  # the reason being that, when merging NAs are filled per layer: so per layer it is checked whether the pixel contains data 
+  # and data from try 1, 2 or 3 is chosen accordingly.
+  # However, this should not happen because the data in the rasterlayers is related to each other per pixel
+  # So I want to base the decision, which try is selected only on BPNumb. 
+  # If a pixel is NA in try 1, the data from try 2 can be used if thats not NA - that is the data from all rasterlayers 
+  # example: otherwise it could happen that DBP is 0 (meaning no drought breakpoint), however the indicators that follow
+  # which shoul normally be NA, do have a value because that is taken from another try. This is not possible; data shouldnt be mixed
   try_2_list[[i]]<-mask(try_2_list[[i]],try_1_list[[i]][[1]],inverse=TRUE)
   try_3_list[[i]]<-mask(try_2_list[[i]],try_1_list[[i]][[1]],inverse=TRUE)
   try_3_list[[i]]<-mask(try_2_list[[i]],try_2_list[[i]][[1]],inverse=TRUE)
@@ -430,12 +439,6 @@ df_output <- df_output[rowSums(is.na(df_output)) != (ncol(df_output))-4,]  # 811
 ##Save dataframe
 save(df_output,file="G:/Thesis_data/Statistics/df_output.Rda") 
 
-
-### Here I Have to THINK what do I actually want to do 
-## Write everything so far down in thesis doc (set a timer for that)
-## Make everything essential for storyline bold (aim, questions, hypothesis, assumptions etc)
-## Make sketch of results i want to present (parameters, axis, relationships etc...)
-## make start with statistical analysis 
 ##Create subsets for DBP=1
 df_output_dbp <- subset(df_output,DBP==1) # 630661
 ##Create subsets with MagObsR<=0 for DBP=1 # zo selecteer je alleen breakpoints met een dip

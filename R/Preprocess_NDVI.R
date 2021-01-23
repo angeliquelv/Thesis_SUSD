@@ -312,6 +312,14 @@ for (i in 1:length(QFLAG_tif_files)) {
 
 file.rename(QFLAG_tif_files,new_names_tif_files)
 
+# taking the mean of overlapping values in the quality flag was probably a mistake. 
+# this way that data may have gotten compromised. -- is should have applied the quality flag to each 
+# individual frame before mosaicking the raster together.
+# however effect is not expected to be large. if the pixel had a clear value in both it will still have that
+# however, if one of the two pixels in overlapping areas was cloudy it means that that pixel is now filtered out altogher
+# whereas otherwise it could still have a value from the other image.
+# this tiny misttake may have resulted in slightly less pixels with data around overlapping areas
+
 # The same operations are performed for loop on the quality flag data
 QFLAG_stack_Landsat_5_7 <- stack()
 for (i in 1:length(dates_sorted)) {
